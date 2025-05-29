@@ -1,5 +1,6 @@
 import { Controller, Post, Body, ConflictException } from '@nestjs/common';
 import { StudentsService } from './students.service';
+import { CreateStudentDto } from './dto/create-student.dto';
 import { Student } from './schemas/student.schema';
 
 @Controller('students')
@@ -8,10 +9,10 @@ export class StudentsController {
 
   @Post()
   async createStudent(
-    @Body() studentData: Omit<Student, 'password'> & { password_plain: string },
+    @Body() createStudentDto: CreateStudentDto,
   ): Promise<Student> {
     try {
-      const student = await this.studentsService.create(studentData);
+      const student = await this.studentsService.create(createStudentDto);
       return student;
     } catch (error) {
       if (error instanceof ConflictException) {
