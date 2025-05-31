@@ -48,10 +48,7 @@ export class AdminService implements OnModuleInit {
       );
       return;
     }
-
-    const existingAdmin = await this.adminModel
-      .findOne({ username: defaultAdminUsername })
-      .exec();
+    const existingAdmin = await this.findByUsername(defaultAdminUsername);
     if (existingAdmin) {
       this.logger.log(
         `Default admin user "${defaultAdminUsername}" already exists (checked on startup).`,

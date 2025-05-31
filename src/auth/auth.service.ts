@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { HistoryService } from '../history/history.service';
 import * as bcrypt from 'bcryptjs';
 import { Student } from '../students/schemas/student.schema';
+import { Admin } from '../admin/schemas/admin.schema';
 import { CreateStudentDto } from '../students/dto/create-student.dto';
 
 @Injectable()
@@ -37,7 +38,6 @@ export class AuthService {
       return null;
     }
 
-    this.logger.debug(`Student found: ${studentDoc.name}. Checking password.`);
     const isMatch = await bcrypt.compare(pass, studentDoc.password);
 
     if (isMatch) {
@@ -50,6 +50,32 @@ export class AuthService {
       this.logger.warn(`Password mismatch for student "${nim}".`);
       return null;
     }
+  }
+
+  async validateAdminByCredentials(
+    username: string,
+    pass: string,
+  ): Promise<Omit<Admin, 'password'> | null> {
+    this.logger.debug(
+      `Attempting to validate admin with username: ${username}`,
+    );
+    const adminDoc = await this.adminService.findByUsername(username);
+
+    if (!adminDoc) {
+      this.logger.warn(
+        `Admin with username "${username}" not found during validation.`,
+      );
+      return null;
+    }
+
+    const isMatch = await bcrypt.compare(pass, adminDoc.password);
+    if (isMatch) {
+      this.logger.log(`Password match for admin "${username}".`);
+      const { password, ...result } = adminDoc.toObject();
+      return result;
+    }
+    this.logger.warn(`Password mismatch for admin "${username}".`);
+    return null;
   }
 
   async loginStudent(
@@ -78,6 +104,21 @@ export class AuthService {
       );
     }
 
+    return {
+      access_token: accessToken,
+    };
+  }
+
+  async loginAdmin(
+    admin: Omit<Admin, 'password'> & { _id: any; username: string },
+  ): Promise<{ access_token: string }> {
+    const payload = {
+      sub: admin._id,
+      role: 'admin',
+      username: admin.username,
+    };
+    const accessToken = this.jwtService.sign(payload);
+    this.logger.log(`Generated JWT for admin: ${admin.username}`);
     return {
       access_token: accessToken,
     };

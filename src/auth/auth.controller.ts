@@ -10,7 +10,9 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { StudentLocalAuthGuard } from './guards/student-local-auth.guard';
+import { AdminLocalAuthGuard } from './guards/admin-local-auth.guard';
 import { StudentLoginDto } from './dto/student-login.dto';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { CreateStudentDto } from '../students/dto/create-student.dto';
 
 @Controller('auth')
@@ -40,5 +42,15 @@ export class AuthController {
     @Body() studentLoginDto: StudentLoginDto,
   ): Promise<{ access_token: string }> {
     return this.authService.loginStudent(req.user);
+  }
+
+  @UseGuards(AdminLocalAuthGuard)
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  async loginAdmin(
+    @Request() req,
+    @Body() adminLoginDto: AdminLoginDto,
+  ): Promise<{ access_token: string }> {
+    return this.authService.loginAdmin(req.user);
   }
 }
