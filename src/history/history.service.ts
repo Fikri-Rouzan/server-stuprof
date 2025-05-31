@@ -57,13 +57,27 @@ export class HistoryService {
   }
 
   async recordLogout(studentId: string): Promise<History | null> {
+    this.logger.debug(
+      `Attempting to record logout for studentId: ${studentId}`,
+    );
     const now = new Date();
-    return this.historyModel
+    const updatedHistoryEntry = await this.historyModel
       .findOneAndUpdate(
         { student: studentId },
         { $set: { lastLogout: now } },
         { new: true },
       )
       .exec();
+
+    if (updatedHistoryEntry) {
+      this.logger.log(
+        `Logout successfully recorded for studentId ${studentId}. New lastLogout: ${updatedHistoryEntry.lastLogout}`,
+      );
+    } else {
+      this.logger.warn(
+        `No history record found for studentId ${studentId} to update lastLogout.`,
+      );
+    }
+    return updatedHistoryEntry;
   }
 }

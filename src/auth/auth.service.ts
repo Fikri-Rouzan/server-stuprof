@@ -12,8 +12,7 @@ import * as bcrypt from 'bcryptjs';
 import { Student } from '../students/schemas/student.schema';
 import { Admin } from '../admin/schemas/admin.schema';
 import { CreateStudentDto } from '../students/dto/create-student.dto';
-import { JwtPayload } from './strategies/jwt.strategy';
-import { StudentServiceResponse } from '../students/students.service';
+import { AuthenticatedUser, JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
 export class AuthService {
@@ -178,7 +177,9 @@ export class AuthService {
     }
   }
 
-  async validateUserFromJwt(payload: JwtPayload): Promise<any> {
+  async validateUserFromJwt(
+    payload: JwtPayload,
+  ): Promise<AuthenticatedUser | null> {
     this.logger.debug(
       `Validating user from JWT payload: ID=${payload.sub}, Role=${payload.role}`,
     );
@@ -203,5 +204,22 @@ export class AuthService {
       }
     }
     return null;
+  }
+
+  async logoutUser(user: AuthenticatedUser): Promise<{ message: string }> {
+    this.logger.log(`User logging out: ID=${user.userId}, Role=${user.role}`);
+    if (user.role === 'student') {
+      try {
+        this.logger.debug(`Calling recordLogout for studentId: ${user.userId}`);
+        await this.historyService.recordLogout(user.userId);
+        this.logger.log(`Logout history recorded for student: ${user.userId}`);
+      } catch (error) {
+        this.logger.error(
+          `Failed to record logout history for student ${user.userId}: ${error.message}`,
+          error.stack,
+        );
+      }
+    }
+    return { message: 'Successfully logged out' };
   }
 }
