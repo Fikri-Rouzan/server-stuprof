@@ -5,10 +5,12 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  UseGuards,
 } from '@nestjs/common';
 import { HistoryService } from './history.service';
-import { HistoryDocument } from './schemas/history.schema';
-import { PopulatedStudentDetailsDto } from './dto/populated-student.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('history')
 export class HistoryController {
@@ -16,20 +18,24 @@ export class HistoryController {
 
   constructor(private readonly historyService: HistoryService) {}
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @Get()
-  async findAllHistory(): Promise<
-    (Omit<HistoryDocument, 'student'> & {
-      student: PopulatedStudentDetailsDto | null;
-    })[]
-  > {
-    this.logger.log('Request to find all history records');
+  async findAllHistory(): Promise<any[]> {
+    this.logger.log(
+      'Request to find all history records by an authorized user',
+    );
     return this.historyService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   @Delete()
   @HttpCode(HttpStatus.OK)
   async clearAllHistory(): Promise<{ message: string; deletedCount?: number }> {
-    this.logger.log('Request to clear all history records');
+    this.logger.log(
+      'Request to clear all history records by an authorized admin',
+    );
     return this.historyService.clearAll();
   }
 }
