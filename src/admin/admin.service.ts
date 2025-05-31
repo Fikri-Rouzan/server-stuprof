@@ -11,6 +11,8 @@ import { Admin, AdminDocument } from './schemas/admin.schema';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { ConfigService } from '@nestjs/config';
 
+export type AdminServiceResponse = Omit<Admin, 'password'> & { _id: any };
+
 @Injectable()
 export class AdminService implements OnModuleInit {
   private readonly logger = new Logger(AdminService.name);
@@ -94,5 +96,14 @@ export class AdminService implements OnModuleInit {
     const savedAdmin = await createdAdminDoc.save();
     const { password, ...result } = savedAdmin.toObject();
     return result;
+  }
+
+  async findOneById(id: string): Promise<AdminServiceResponse | null> {
+    const adminDoc = await this.adminModel.findById(id).exec();
+    if (adminDoc) {
+      const { password, ...result } = adminDoc.toObject();
+      return result as AdminServiceResponse;
+    }
+    return null;
   }
 }

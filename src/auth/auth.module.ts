@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HistoryModule } from '../history/history.module';
 import { StudentLocalStrategy } from './strategies/student-local.strategy';
 import { AdminLocalStrategy } from './strategies/admin-local.strategy';
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -28,7 +29,12 @@ import { AdminLocalStrategy } from './strategies/admin-local.strategy';
     AdminModule,
     HistoryModule,
   ],
-  providers: [AuthService, StudentLocalStrategy, AdminLocalStrategy],
+  providers: [
+    AuthService,
+    StudentLocalStrategy,
+    AdminLocalStrategy,
+    JwtStrategy,
+  ],
   controllers: [AuthController],
   exports: [AuthService, JwtModule, PassportModule],
 })

@@ -12,6 +12,8 @@ import * as bcrypt from 'bcryptjs';
 import { Student } from '../students/schemas/student.schema';
 import { Admin } from '../admin/schemas/admin.schema';
 import { CreateStudentDto } from '../students/dto/create-student.dto';
+import { JwtPayload } from './strategies/jwt.strategy';
+import { StudentServiceResponse } from '../students/students.service';
 
 @Injectable()
 export class AuthService {
@@ -174,5 +176,32 @@ export class AuthService {
       );
       throw error;
     }
+  }
+
+  async validateUserFromJwt(payload: JwtPayload): Promise<any> {
+    this.logger.debug(
+      `Validating user from JWT payload: ID=${payload.sub}, Role=${payload.role}`,
+    );
+    if (payload.role === 'student') {
+      const student = await this.studentsService.findOne(payload.sub);
+      if (student) {
+        return {
+          userId: payload.sub,
+          nim: payload.nim,
+          name: payload.name,
+          role: 'student',
+        };
+      }
+    } else if (payload.role === 'admin') {
+      const admin = await this.adminService.findOneById(payload.sub);
+      if (admin) {
+        return {
+          userId: payload.sub,
+          username: payload.username,
+          role: 'admin',
+        };
+      }
+    }
+    return null;
   }
 }
