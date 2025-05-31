@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HistoryModule } from '../history/history.module';
+import { StudentLocalStrategy } from './strategies/student-local.strategy';
 
 @Module({
   imports: [
@@ -26,7 +27,7 @@ import { HistoryModule } from '../history/history.module';
     AdminModule,
     HistoryModule,
   ],
-  providers: [AuthService],
+  providers: [AuthService, StudentLocalStrategy],
   controllers: [AuthController],
   exports: [AuthService, JwtModule, PassportModule],
 })

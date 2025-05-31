@@ -111,4 +111,8 @@ export class StudentsService {
     }
     return { message: `Student with ID "${id}" successfully deleted` };
   }
+
+  async findByNIM(nim: string): Promise<StudentDocument | null> {
+    return this.studentModel.findOne({ nim }).exec();
+  }
 }
