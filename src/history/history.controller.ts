@@ -6,8 +6,10 @@ import {
   HttpStatus,
   Logger,
   UseGuards,
+  Param,
+  NotFoundException,
 } from '@nestjs/common';
-import { HistoryService } from './history.service';
+import { HistoryService, HistoryWithStudent } from './history.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -21,21 +23,33 @@ export class HistoryController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Get()
-  async findAllHistory(): Promise<any[]> {
+  async findAllHistory(): Promise<HistoryWithStudent[]> {
     this.logger.log(
       'Request to find all history records by an authorized user',
     );
+
     return this.historyService.findAll();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  @Delete()
+  @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  async clearAllHistory(): Promise<{ message: string; deletedCount?: number }> {
+  async deleteOneHistory(
+    @Param('id') id: string,
+  ): Promise<{ message: string; historyId: string }> {
     this.logger.log(
-      'Request to clear all history records by an authorized admin',
+      `Request to clear history record ${id} by an authorized admin`,
     );
-    return this.historyService.clearAll();
+
+    try {
+      return await this.historyService.deleteHistory(id);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(error.message);
+      }
+
+      throw error;
+    }
   }
 }

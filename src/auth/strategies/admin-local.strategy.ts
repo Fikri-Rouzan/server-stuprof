@@ -2,7 +2,7 @@ import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
-import { Admin } from '../../admin/schemas/admin.schema';
+import { Admin } from '@prisma/client';
 
 @Injectable()
 export class AdminLocalStrategy extends PassportStrategy(
@@ -24,9 +24,11 @@ export class AdminLocalStrategy extends PassportStrategy(
       username,
       pass,
     );
+
     if (!admin) {
       throw new UnauthorizedException('Invalid username or password for admin');
     }
+
     return admin;
   }
 }

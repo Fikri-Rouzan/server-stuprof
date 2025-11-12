@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Controller,
   Post,
@@ -39,6 +40,7 @@ export class StudentsController {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
+
       throw error;
     }
   }
@@ -46,7 +48,7 @@ export class StudentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Get()
-  async findAllStudents(): Promise<any[]> {
+  async findAllStudents(): Promise<StudentServiceResponse[]> {
     return this.studentsService.findAll();
   }
 
@@ -55,11 +57,13 @@ export class StudentsController {
   @Get('me')
   async findMyProfile(
     @Request() req: { user: AuthenticatedUser },
-  ): Promise<StudentServiceResponse | null> {
+  ): Promise<StudentServiceResponse> {
     const studentProfile = await this.studentsService.findOne(req.user.userId);
+
     if (!studentProfile) {
       throw new NotFoundException('Your student profile was not found.');
     }
+
     return studentProfile;
   }
 
@@ -69,11 +73,16 @@ export class StudentsController {
   async updateMyProfile(
     @Request() req: { user: AuthenticatedUser },
     @Body() updateStudentDto: UpdateStudentDto,
-  ): Promise<StudentServiceResponse | null> {
+  ): Promise<StudentServiceResponse> {
     if (updateStudentDto.nim && updateStudentDto.nim !== req.user.nim) {
       throw new ForbiddenException('You cannot change your NIM.');
     }
-    const { nim, ...allowedUpdates } = updateStudentDto;
+
+    const {
+      nim: _nim,
+      password_plain: _password_plain,
+      ...allowedUpdates
+    } = updateStudentDto;
 
     return this.studentsService.update(
       req.user.userId,
@@ -88,9 +97,11 @@ export class StudentsController {
     @Param('id') id: string,
   ): Promise<StudentServiceResponse> {
     const student = await this.studentsService.findOne(id);
+
     if (!student) {
       throw new NotFoundException(`Student with ID "${id}" not found`);
     }
+
     return student;
   }
 
@@ -102,23 +113,16 @@ export class StudentsController {
     @Body() updateStudentDto: UpdateStudentDto,
   ): Promise<StudentServiceResponse> {
     try {
-      const updatedStudent = await this.studentsService.update(
-        id,
-        updateStudentDto,
-      );
-      if (!updatedStudent) {
-        throw new NotFoundException(
-          `Student with ID "${id}" not found for update`,
-        );
-      }
-      return updatedStudent;
+      return await this.studentsService.update(id, updateStudentDto);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
       }
+
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
+
       throw error;
     }
   }
@@ -134,6 +138,7 @@ export class StudentsController {
       if (error instanceof NotFoundException) {
         throw new NotFoundException(error.message);
       }
+
       throw error;
     }
   }

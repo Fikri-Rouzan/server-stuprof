@@ -2,7 +2,7 @@ import { Strategy } from 'passport-local';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
-import { Student } from '../../students/schemas/student.schema';
+import { Student } from '@prisma/client';
 
 @Injectable()
 export class StudentLocalStrategy extends PassportStrategy(
@@ -21,9 +21,11 @@ export class StudentLocalStrategy extends PassportStrategy(
       nim,
       pass,
     );
+
     if (!student) {
       throw new UnauthorizedException('Invalid NIM or password for student');
     }
+
     return student;
   }
 }

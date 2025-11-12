@@ -1,83 +1,112 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { History, HistoryDocument } from './schemas/history.schema';
-import { PopulatedStudentDetailsDto } from './dto/populated-student.dto';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { History } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+export type HistoryWithStudent = Prisma.HistoryGetPayload<{
+  include: {
+    student: {
+      select: {
+        id: true;
+        name: true;
+        nim: true;
+      };
+    };
+  };
+}>;
 
 @Injectable()
 export class HistoryService {
   private readonly logger = new Logger(HistoryService.name);
 
-  constructor(
-    @InjectModel(History.name) private historyModel: Model<HistoryDocument>,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  async findAll(): Promise<
-    (Omit<HistoryDocument, 'student'> & {
-      student: PopulatedStudentDetailsDto | null;
-    })[]
-  > {
-    const results = await this.historyModel
-      .find()
-      .populate<{
-        student: PopulatedStudentDetailsDto | null;
-      }>('student', '_id name nim')
-      .sort({ lastLogin: -1 })
-      .exec();
-
-    return results.map((historyDoc) => {
-      const historyObject = historyDoc.toObject() as Omit<
-        HistoryDocument,
-        'student'
-      > & { student: PopulatedStudentDetailsDto | null };
-      return historyObject;
+  async findAll(): Promise<HistoryWithStudent[]> {
+    return this.prisma.history.findMany({
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            nim: true,
+          },
+        },
+      },
+      orderBy: {
+        lastLogin: 'desc',
+      },
     });
   }
 
-  async clearAll(): Promise<{ message: string; deletedCount?: number }> {
-    const result = await this.historyModel.deleteMany({}).exec();
-    this.logger.log(
-      `All history records deleted. Count: ${result.deletedCount}`,
-    );
-    return {
-      message: 'All history records have been successfully cleared.',
-      deletedCount: result.deletedCount,
-    };
+  async deleteHistory(
+    id: string,
+  ): Promise<{ message: string; historyId: string }> {
+    try {
+      await this.prisma.history.delete({
+        where: { id },
+      });
+
+      return { message: 'History record deleted successfully', historyId: id };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`History record with ID "${id}" not found`);
+      }
+
+      throw error;
+    }
   }
 
   async recordLogin(studentId: string): Promise<History> {
     const now = new Date();
-    return this.historyModel
-      .findOneAndUpdate(
-        { student: studentId },
-        { $set: { student: studentId, lastLogin: now } },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      )
-      .exec();
+
+    return this.prisma.history.upsert({
+      where: { studentId: studentId },
+      create: {
+        studentId: studentId,
+        lastLogin: now,
+      },
+      update: {
+        lastLogin: now,
+      },
+    });
   }
 
   async recordLogout(studentId: string): Promise<History | null> {
     this.logger.debug(
       `Attempting to record logout for studentId: ${studentId}`,
     );
-    const now = new Date();
-    const updatedHistoryEntry = await this.historyModel
-      .findOneAndUpdate(
-        { student: studentId },
-        { $set: { lastLogout: now } },
-        { new: true },
-      )
-      .exec();
 
-    if (updatedHistoryEntry) {
+    const now = new Date();
+
+    try {
+      const updatedHistoryEntry = await this.prisma.history.update({
+        where: { studentId: studentId },
+        data: {
+          lastLogout: now,
+        },
+      });
+
       this.logger.log(
-        `Logout successfully recorded for studentId ${studentId}. New lastLogout: ${updatedHistoryEntry.lastLogout}`,
+        `Logout successfully recorded for studentId ${studentId}. New lastLogout: ${String(updatedHistoryEntry.lastLogout)}`,
       );
-    } else {
-      this.logger.warn(
-        `No history record found for studentId ${studentId} to update lastLogout.`,
-      );
+
+      return updatedHistoryEntry;
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        (error.code === 'P2025' || error.code === 'P2016')
+      ) {
+        this.logger.warn(
+          `No history record found for studentId ${studentId} to update lastLogout.`,
+        );
+
+        return null;
+      }
+
+      throw error;
     }
-    return updatedHistoryEntry;
   }
 }

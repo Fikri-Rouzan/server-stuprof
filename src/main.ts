@@ -16,13 +16,9 @@ async function bootstrap() {
     }),
   );
 
-  app.enableCors({
-    origin: ['http://localhost:5173'],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
-    credentials: true,
-  });
+  app.enableShutdownHooks();
 
   await app.listen(process.env.PORT || 3000);
 }
-bootstrap();
+
+void bootstrap();

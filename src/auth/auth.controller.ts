@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Controller,
   Post,
@@ -16,7 +17,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { StudentLoginDto } from './dto/student-login.dto';
 import { AdminLoginDto } from './dto/admin-login.dto';
 import { CreateStudentDto } from '../students/dto/create-student.dto';
-import { AuthenticatedUser, JwtPayload } from './strategies/jwt.strategy';
+import { AuthenticatedUser } from './strategies/jwt.strategy';
+import { Admin, Student } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
@@ -33,6 +35,7 @@ export class AuthController {
       if (error instanceof ConflictException) {
         throw new ConflictException(error.message);
       }
+
       throw error;
     }
   }
@@ -41,7 +44,7 @@ export class AuthController {
   @Post('student/login')
   @HttpCode(HttpStatus.OK)
   async loginStudent(
-    @Request() req,
+    @Request() req: { user: Omit<Student, 'password'> },
     @Body() studentLoginDto: StudentLoginDto,
   ): Promise<{ access_token: string }> {
     return this.authService.loginStudent(req.user);
@@ -50,10 +53,10 @@ export class AuthController {
   @UseGuards(AdminLocalAuthGuard)
   @Post('admin/login')
   @HttpCode(HttpStatus.OK)
-  async loginAdmin(
-    @Request() req,
+  loginAdmin(
+    @Request() req: { user: Omit<Admin, 'password'> },
     @Body() adminLoginDto: AdminLoginDto,
-  ): Promise<{ access_token: string }> {
+  ): { access_token: string } {
     return this.authService.loginAdmin(req.user);
   }
 
