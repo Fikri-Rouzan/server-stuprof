@@ -9,4 +9,4 @@
 - ⚛️ **Libraries:** Prisma, bcrypt.js, class-validator, class-transformer, Passport, passport-local, and passport-jwt.
 - 🗄️ **Database:** PostgreSQL.
 - ⚡ **Tool:** Prisma.
-- 💻 **Software:** Visual Studio Code.
+- 💻 **Software:** Visual Studio Code and Postman.
